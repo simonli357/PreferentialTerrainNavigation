@@ -1,0 +1,46 @@
+<!-- -->
+<launch>
+  <arg name="role_name" default="ego_vehicle"/>
+  <arg name="objects_definition_file" default='$(find carla_spawn_objects)/config/objects.json'/>
+  <!-- use comma separated format "x,y,z,roll,pitch,yaw", 
+    and parameter name spawn_point_<vehicle_name>. You can add
+    as many spawn_point as vehicles defined in objects_definition_file-->
+  <!-- <arg name="spawn_point_ego_vehicle" default='390.0,-87.0,0.3,0.0,0.0,90.0'/> -->
+  <arg name="spawn_point_ego_vehicle" default=''/>
+  <arg name="spawn_sensors_only" default="false"/>
+
+  <arg name="control_id" default="control"/>
+
+  <include file="$(find carla_spawn_objects)/launch/carla_spawn_objects.launch">
+    <arg name="objects_definition_file" value='$(arg objects_definition_file)'/>
+    <arg name="spawn_point_ego_vehicle" value="$(arg spawn_point_ego_vehicle)"/>
+    <arg name="spawn_sensors_only" value="$(arg spawn_sensors_only)" />
+  </include>
+
+  <!-- This nodes allows to respawn the vehicle <role_name> by publishing on topic /initialpose -->
+  <include file="$(find carla_spawn_objects)/launch/set_initial_pose.launch">
+    <arg name="role_name" value="$(arg role_name)"/>
+    <arg name="control_id" value="$(arg control_id)"/>
+  </include>
+
+  <!-- <node pkg="carla_spawn_objects" type="pc_to_scan.py" name="pc_to_scan" output="screen">
+    <param name="role_name" value="$(arg role_name)" />
+  </node> -->
+
+  <node name="pointcloud_to_laserscan" pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" output="screen">
+      <remap from="cloud_in" to="/carla/ego_vehicle/semantic_lidar"/> <!-- Input PointCloud2 topic -->
+      <remap from="scan" to="/scan"/> <!-- Output LaserScan topic -->
+      
+      <param name="target_frame" value="ego_vehicle"/> <!-- Frame to transform to -->
+      <param name="min_height" value="2.3"/> <!-- Min height for filtering -->
+      <param name="max_height" value="2.5"/> <!-- Max height for filtering -->
+      <param name="angle_min" value="-3.14"/> <!-- Min scan angle -->
+      <param name="angle_max" value="3.14"/> <!-- Max scan angle -->
+      <param name="angle_increment" value="0.01"/> <!-- Angular resolution -->
+      <param name="scan_time" value="0.05"/> <!-- Time between scans -->
+      <param name="range_min" value="0.1"/> <!-- Minimum range -->
+      <param name="range_max" value="50.0"/> <!-- Maximum range -->
+      <param name="use_inf" value="true"/> <!-- Use +inf for max ranges -->
+  </node>
+
+</launch>
