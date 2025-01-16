@@ -21,10 +21,24 @@ This repository contains the implementation of the system using the CARLA simula
 ---
 
 ## Prerequisites
-1. **CARLA Simulator**: [Download CARLA](https://carla.org/) version 0.9.13.
-2. **Robot Operating System (ROS)**: [Install ROS](http://wiki.ros.org/ROS/Installation) (tested with ROS Noetic).
-3. **Python**: Python 3.8 or higher.
-4. Additional dependencies are managed through the included `CMakeLists.txt` and ROS packages.
+
+### **CARLA Simulator**: 
+[Download CARLA](https://carla.org/) version 0.9.13.
+### **Robot Operating System (ROS)**: 
+[Install ROS](http://wiki.ros.org/ROS/Installation) (tested with ROS Noetic).
+### **Eigen**:
+- Installation:
+```bash
+sudo apt install libeigen3-dev
+```
+### **Python**: 
+Python 3.8 or higher.
+### **Grid_Map Library**:
+- Installation:
+```bash
+sudo apt install ros-<your-ros-distro>-grid-map*
+```
+### Additional dependencies are managed through the included `CMakeLists.txt` and ROS packages.
 
 ---
 
@@ -96,6 +110,7 @@ PreferentialTerrainNavigation
 ├── src
 │   ├── bev                  # Bird’s Eye View (BEV) generation
 │   ├── segmentation         # Terrain segmentation
+│   ├── mapping              # Grid Map Creation from Segmented BEV Image
 │   ├── planning             # Path planning and MPC modules
 │   ├── ros-bridge           # Integration with ROS and CARLA
 │   ├── CMakeLists.txt       # Build configuration

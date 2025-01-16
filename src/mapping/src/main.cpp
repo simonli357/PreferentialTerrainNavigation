@@ -4,7 +4,7 @@
 
 int main(int argc, char** argv)
 {
-    // (Optional) initialize ROS
+    // initialize ROS
     // ros::init(argc, argv, "grid_map_example");
     // ros::NodeHandle nh;
 
@@ -21,8 +21,8 @@ int main(int argc, char** argv)
 
     // 3) The robot's global pose
     double robotX = 50.0;     // center of global map
-    double robotY = 50.0;     
-    double robotYaw = -M_PI/4; // 45 deg
+    double robotY = 70.0;     
+    double robotYaw = M_PI/4; // 45 deg
 
     // 4) Update the global map with the local cost image
     myGlobalMap.updateGlobalMap(localMap, robotX, robotY, robotYaw);
@@ -37,9 +37,12 @@ int main(int argc, char** argv)
         float costVal = gridMap.at("terrainCost", index);
         globalCostImage.at<uint8_t>(index(0), index(1)) = static_cast<uint8_t>(costVal);
     }
-
+    
+    cv::Mat displayMap;
+    // rotate so that x points to the right and y points up
+    cv::rotate(globalCostImage, displayMap, cv::ROTATE_90_CLOCKWISE); 
     cv::namedWindow("Global Cost (grid_map)", cv::WINDOW_NORMAL);
-    cv::imshow("Global Cost (grid_map)", globalCostImage);
+    cv::imshow("Global Cost (grid_map)", displayMap);
     cv::waitKey(0);
 
     return 0;
