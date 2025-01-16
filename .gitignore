@@ -1,5 +1,5 @@
-.catkin_workspace
 build
 devel
 install
 src/segmentation/pretrained_models
+.*

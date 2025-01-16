@@ -41,7 +41,14 @@ rosrun segmentation segmentation_node.py
 === Start bev node 
 ```bash
 rosrun bev ipm_node.py
+rosrun bev ipm_node.py --show # to show the image
+rosrun bev ipm_node.py --gt # to show the ground truth from carla instead of segmentation node output
 ```
+- Press 's' to save the image
+
+== BEV node resolution
+- 7.3 cm/pixel
+- 13.6 px/m
 
 == Useful topics
 

@@ -6,7 +6,6 @@ import _init_paths
 import models
 import torch
 import torch.nn.functional as F
-from PIL import Image
 import rospy
 from sensor_msgs.msg import Image as ROSImage
 from cv_bridge import CvBridge
@@ -25,12 +24,58 @@ SAVE_DIR = os.path.join(cur_dir, '../saved_images/')
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
 
+# cityscapes
 COLOR_MAP = [
-    (128, 64, 128), (244, 35, 232), (70, 70, 70), (102, 102, 156),
+    (0,0,0), (128, 64, 128), (244, 35, 232), (70, 70, 70), (102, 102, 156),
     (190, 153, 153), (153, 153, 153), (250, 170, 30), (220, 220, 0),
     (107, 142, 35), (152, 251, 152), (70, 130, 180), (220, 20, 60),
     (255, 0, 0), (0, 0, 142), (0, 0, 70), (0, 60, 100), (0, 80, 100),
     (0, 0, 230), (119, 11, 32)
+]
+CLASSES = [
+    'unlabeled', 'road', 'sidewalk', 'building', 'wall', 'fence', 'pole', 'traffic light',
+    'traffic sign', 'vegetation', 'terrain', 'sky', 'person', 'rider', 'car',
+    'truck', 'bus', 'train', 'motorcycle', 'bicycle'
+]
+
+# carla
+COLOR_MAP = [
+    (0, 0, 0),        # Unlabeled
+    (128, 64, 128),   # Roads
+    (244, 35, 232),   # SideWalks
+    (70, 70, 70),     # Building
+    (102, 102, 156),  # Wall
+    (190, 153, 153),  # Fence
+    (153, 153, 153),  # Pole
+    (250, 170, 30),   # TrafficLight
+    (220, 220, 0),    # TrafficSign
+    (107, 142, 35),   # Vegetation
+    (152, 251, 152),  # Terrain
+    (70, 130, 180),   # Sky
+    (220, 20, 60),    # Pedestrian
+    (255, 0, 0),      # Rider
+    (0, 0, 142),      # Car
+    (0, 0, 70),       # Truck
+    (0, 60, 100),     # Bus
+    (0, 80, 100),     # Train
+    (0, 0, 230),      # Motorcycle
+    (119, 11, 32),    # Bicycle
+    (110, 190, 160),  # Static
+    (170, 120, 50),   # Dynamic
+    (55, 90, 80),     # Other
+    (45, 60, 150),    # Water
+    (157, 234, 50),   # RoadLine
+    (81, 0, 81),      # Ground
+    (150, 100, 100),  # Bridge
+    (230, 150, 140),  # RailTrack
+    (180, 165, 180)   # GuardRail
+]
+CLASSES = [
+    'unlabeled', 'roads', 'sidewalks', 'building', 'wall', 'fence', 'pole',
+    'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky',
+    'pedestrian', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle',
+    'bicycle', 'static', 'dynamic', 'other', 'water', 'road line', 'ground',
+    'bridge', 'rail track', 'guard rail'
 ]
 
 # ROS Topics
@@ -52,9 +97,15 @@ class SegmentationNode:
         rospy.init_node('segmentation_node')
         self.bridge = CvBridge()
 
+        if torch.cuda.is_available():
+            print("GPU is available. Using GPU.")
+            self.device = torch.device('cuda')
+        else:
+            print("GPU is not available. Using CPU.")
+            self.device = torch.device('cpu')
         # Load model
         self.model = models.pidnet.get_pred_model(MODEL_TYPE, 19 if USE_CITYSCAPES else 11)
-        self.model = self.load_pretrained(self.model, PRETRAINED_MODEL_PATH).cuda()
+        self.model = self.load_pretrained(self.model, PRETRAINED_MODEL_PATH).to(self.device)
         self.model.eval()
 
         # Subscribers and publishers
@@ -104,7 +155,7 @@ class SegmentationNode:
             resized = True
 
         img_input = self.input_transform(img).transpose((2, 0, 1))
-        img_input = torch.from_numpy(img_input).unsqueeze(0).cuda()
+        img_input = torch.from_numpy(img_input).unsqueeze(0).to(self.device)
 
         with torch.no_grad():
             pred = self.model(img_input)

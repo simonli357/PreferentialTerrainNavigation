@@ -4,11 +4,10 @@ import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import os
-import sys
 import yaml
 import numpy as np
 import cv2
-from tqdm import tqdm
+import argparse
 
 class Camera:
     def __init__(self, config):
@@ -84,7 +83,6 @@ def load_camera_configs_and_images(camera_config_paths, image_paths, batch=False
         outputFilenames = [os.path.basename(imgs[0]) for imgs in imagePaths]
 
     print("cameraConfigs:", cameraConfigs)
-    print("imagePaths:", imagePaths)
     print("outputFilenames:", outputFilenames)
     return cameraConfigs, imagePaths, outputFilenames
 
@@ -120,15 +118,23 @@ def compute_masks(cameraConfigs, outputRes, droneConfig, pxPerM):
     return masks
 
 class IPMNode:
-    def __init__(self):
+    def __init__(self, gt):
         rospy.init_node('ipm_node', anonymous=True)
         self.bridge = CvBridge()
-        self.image_subs = [
-            rospy.Subscriber('/carla/ego_vehicle/segmentation_front', Image, self.callback_front),
-            rospy.Subscriber('/carla/ego_vehicle/segmentation_left', Image, self.callback_left),
-            rospy.Subscriber('/carla/ego_vehicle/segmentation_rear', Image, self.callback_rear),
-            rospy.Subscriber('/carla/ego_vehicle/segmentation_right', Image, self.callback_right)
-        ]
+        if gt:
+            self.image_subs = [
+                rospy.Subscriber('/carla/ego_vehicle/semantic_camera_front/image', Image, self.callback_front),
+                rospy.Subscriber('/carla/ego_vehicle/semantic_camera_left/image', Image, self.callback_left),
+                rospy.Subscriber('/carla/ego_vehicle/semantic_camera_rear/image', Image, self.callback_rear),
+                rospy.Subscriber('/carla/ego_vehicle/semantic_camera_right/image', Image, self.callback_right)
+            ]
+        else:
+            self.image_subs = [
+                rospy.Subscriber('/carla/ego_vehicle/segmentation_front', Image, self.callback_front),
+                rospy.Subscriber('/carla/ego_vehicle/segmentation_left', Image, self.callback_left),
+                rospy.Subscriber('/carla/ego_vehicle/segmentation_rear', Image, self.callback_rear),
+                rospy.Subscriber('/carla/ego_vehicle/segmentation_right', Image, self.callback_right)
+            ]
         self.image_pub = rospy.Publisher('/ipm/birds_eye_view', Image, queue_size=10)
         self.images = [None, None, None, None]
 
@@ -145,32 +151,25 @@ class IPMNode:
         self.images[3] = self.bridge.imgmsg_to_cv2(msg, "bgr8")
 
 def main():
-    node = IPMNode()
+    parser = argparse.ArgumentParser(description="Generate Bird's Eye View from multiple camera images")
+    parser.add_argument("--gt", action="store_true", help="Use ground truth images")
+    parser.add_argument("--show", action="store_true", help="Show images in a window")
+    args = parser.parse_args()
+    node = IPMNode(args.gt)
+    current_dir = os.path.dirname(os.path.realpath(__file__))
     camera_config_paths = [
-        "../camera_configs/1_FRLR/front.yaml",
-        "../camera_configs/1_FRLR/rear.yaml",
-        "../camera_configs/1_FRLR/left.yaml",
-        "../camera_configs/1_FRLR/right.yaml"
+        os.path.join(current_dir, "camera_configs/1_FRLR/front.yaml"),
+        os.path.join(current_dir, "camera_configs/1_FRLR/rear.yaml"),
+        os.path.join(current_dir, "camera_configs/1_FRLR/left.yaml"),
+        os.path.join(current_dir, "camera_configs/1_FRLR/right.yaml")
     ]
     image_dirs = [
-        # "../../data/1_FRLR/train/front",
-        # "../../data/1_FRLR/train/rear",
-        # "../../data/1_FRLR/train/left",
-        # "../../data/1_FRLR/train/right"
-        "../../data/1_FRLR/carla/front",
-        "../../data/1_FRLR/carla/rear",
-        "../../data/1_FRLR/carla/left",
-        "../../data/1_FRLR/carla/right"
+        os.path.join(current_dir, "../data/1_FRLR/carla/front"),
+        os.path.join(current_dir, "../data/1_FRLR/carla/rear"),
+        os.path.join(current_dir, "../data/1_FRLR/carla/left"),
+        os.path.join(current_dir, "../data/1_FRLR/carla/right")
     ]
-    drone_config_path = "../camera_configs/1_FRLR/drone.yaml"
-    output_dir = "../../data/1_FRLR/train/homography"
-
-    # Toggle display_images to True if you want to view images in a window
-    # instead of saving them. If False, the code will just save the images.
-    display_images = True
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    drone_config_path = os.path.join(current_dir, "camera_configs/1_FRLR/drone.yaml")
 
     # IPM parameters
     width_m = 20
@@ -219,11 +218,7 @@ def main():
     masks = compute_masks(cameraConfigs, outputRes, droneConfig, pxPerM)
 
     interpMode = cv2.INTER_NEAREST if cc else cv2.INTER_LINEAR
-    progress = tqdm(zip(imagePaths, outputFilenames), total=len(imagePaths))
 
-    # for imageTuple, filename in progress:
-        # progress.set_postfix_str(filename)
-        # images = [cv2.imread(imgPath) for imgPath in imageTuple]
     filename = "test"
     hsy = 1
     while not rospy.is_shutdown():
@@ -231,6 +226,7 @@ def main():
         if any(image is None for image in images):
             print("Waiting for images...", hsy)
             hsy += 1
+            rospy.sleep(0.1) # 10 Hz
             continue
         warpedImages = [cv2.warpPerspective(img, IPM, (outputRes[1], outputRes[0]), flags=interpMode)
                         for img, IPM in zip(images, IPMs)]
@@ -244,9 +240,12 @@ def main():
         for wImg in warpedImages:
             mask = np.any(wImg != (0, 0, 0), axis=-1)
             birdsEyeView[mask] = wImg[mask]
+        node.image_pub.publish(node.bridge.cv2_to_imgmsg(birdsEyeView, "bgr8"))
+        # cv2.imshow("Bird's Eye View", birdsEyeView)
+        # cv2.waitKey(1)
 
-        if True:
-            # Display images in a similar way to the original code
+        if args.show:
+            print("Showing images...")
             font = cv2.FONT_HERSHEY_SIMPLEX
             font_scale = 1.0
             font_color = (255, 255, 255)
@@ -269,17 +268,17 @@ def main():
             bottom_row = cv2.hconcat([labeled_cams[2], labeled_cams[3]]) if len(labeled_cams) > 2 else blank_image
             camera_grid = cv2.vconcat([top_row, bottom_row])
 
-            # Resize the BEV image to match the width of the camera_grid
             bev_resized = birdsEyeView
+            # print("bev shape1:", bev_resized.shape) # 604, 964
             if camera_grid.shape[1] != bev_resized.shape[1]:
                 bev_resized = cv2.resize(bev_resized, (camera_grid.shape[1], bev_resized.shape[0]))
+            # print("bev shape2:", bev_resized.shape) # 604, 1928
 
             cv2.putText(bev_resized, "Bird's Eye View", (10,30), font, font_scale, font_color, thickness, line_type)
 
             # Combine camera grid and BEV
             display_image = cv2.vconcat([camera_grid, bev_resized])
 
-            # Optionally resize display image
             scale_factor = 0.5
             new_width = int(display_image.shape[1] * scale_factor)
             new_height = int(display_image.shape[0] * scale_factor)
@@ -287,8 +286,17 @@ def main():
 
             cv2.namedWindow(filename, cv2.WINDOW_NORMAL)
             cv2.imshow(filename, display_image)
-            cv2.waitKey(1)
-            # cv2.destroyAllWindows()
+            
+            key = cv2.waitKey(1) & 0xFF  # Get the last 8 bits of the keypress
+            if key == ord('s'):  # If 's' key is pressed
+                output_dir = os.path.join(current_dir, "output")
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+                save_path = os.path.join(output_dir, "bev_image.png")
+                cv2.imwrite(save_path, birdsEyeView)
+                print(f"Bird's Eye View image saved to {save_path}")
+    
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     main()
