@@ -33,6 +33,11 @@ sudo apt install libeigen3-dev
 ```
 ### **Python**: 
 Python 3.8 or higher.
+### **Python Packages**:
+- Installation:
+```bash
+pip install -r requirements.txt
+```
 ### **Grid_Map Library**:
 - Installation:
 ```bash

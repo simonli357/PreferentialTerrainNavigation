@@ -1,5 +1,6 @@
-#include "TerrainMap.hpp"
-#include "Constants.h"
+#include "mapping/TerrainMap.hpp"
+#include "mapping/Constants.h"
+#include <chrono>
 
 using namespace grid_map;
 
@@ -11,10 +12,9 @@ TerrainMap::TerrainMap()
 
     // Create a GridMap with one layer: "terrainCost"
     std::vector<std::string> layers = {"terrainCost"};
-    globalMap_.setFrameId("map");  // Just a name for the coordinate frame
+    globalMap_.setFrameId("map");
     globalMap_.setGeometry(Length(width, height), resolution, Position(width/2.0, height/2.0));
     // The center is at (width/2, height/2) w.r.t. some global origin (0,0).
-    // This is just one choice. Adjust to your preferred global origin.
 
     // Initialize the "terrainCost" layer to 127 = unknown / mid-cost
     globalMap_.add("terrainCost", 127.0f);
@@ -23,6 +23,7 @@ TerrainMap::TerrainMap()
 void TerrainMap::updateGlobalMap(const cv::Mat& localMap,
                                        double x, double y, double yaw)
 {
+    auto start = std::chrono::high_resolution_clock::now();
     if (localMap.empty() || localMap.type() != CV_8UC1) {
         std::cerr << "[TerrainMap] localMap is invalid (empty or not CV_8UC1). Abort.\n";
         return;
@@ -39,6 +40,7 @@ void TerrainMap::updateGlobalMap(const cv::Mat& localMap,
 
     // 2) Use a PolygonIterator to iterate over cells in the global map
     //    that lie within this footprint.
+    auto start2 = std::chrono::high_resolution_clock::now();
     for (PolygonIterator polyIt(globalMap_, footprintPolygon);
          !polyIt.isPastEnd(); ++polyIt)
     {
@@ -84,6 +86,12 @@ void TerrainMap::updateGlobalMap(const cv::Mat& localMap,
         //    Overwrite or use max? For now just overwrite.
         globalMap_.at("terrainCost", index) = static_cast<float>(localCost);
     }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "[TerrainMap] Updated global map in " << elapsed.count() << " seconds." << std::endl;
+
+    std::chrono::duration<double> elapsed2 = end - start2;
+    std::cout << "[TerrainMap] Iterated in " << elapsed2.count() << " seconds." << std::endl;
 }
 
 grid_map::Polygon TerrainMap::buildGlobalFootprintPolygon(

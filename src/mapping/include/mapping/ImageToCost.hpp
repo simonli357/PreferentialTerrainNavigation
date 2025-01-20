@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
-#include "Constants.h"
+#include "mapping/Constants.h"
 
 using namespace Constants;
 class ImageToCost {

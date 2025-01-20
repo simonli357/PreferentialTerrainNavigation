@@ -1,4 +1,4 @@
-#include "ImageToCost.hpp"
+#include "mapping/ImageToCost.hpp"
 
 int main() {
     cv::Mat colorImage = cv::imread("/home/slsecret/PreferentialTerrainNavigation/src/mapping/data/bev_image.png");

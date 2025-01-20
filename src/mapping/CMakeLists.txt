@@ -18,8 +18,16 @@ find_package(catkin REQUIRED COMPONENTS
   grid_map_octomap
 )
 
+set(LIB_SOURCES
+  src/TerrainMap.cpp
+)
+
+add_library(${PROJECT_NAME} ${LIB_SOURCES})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+
 catkin_package(
   INCLUDE_DIRS include
+  LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS rospy roscpp cv_bridge sensor_msgs geometry_msgs std_msgs grid_map_core grid_map_ros grid_map_msgs
   DEPENDS
 )
@@ -32,13 +40,10 @@ include_directories(
 add_executable(TerrainMap src/TerrainMapOld.cpp)
 target_link_libraries(TerrainMap ${catkin_LIBRARIES})
 
-add_executable(TerrainMap2 src/TerrainMap2.cpp)
-target_link_libraries(TerrainMap2 ${catkin_LIBRARIES})
-
 add_executable(image_to_gridmap_demo src/ImageToGridmapDemo.cpp)
 target_link_libraries(image_to_gridmap_demo ${catkin_LIBRARIES})
 
-add_executable(ImageToCost src/ImageToCost.cpp)
+add_executable(ImageToCost src/ImageToCost_node.cpp)
 target_link_libraries(ImageToCost ${catkin_LIBRARIES})
 
 add_executable(main 
@@ -47,5 +52,19 @@ add_executable(main
 )
 target_link_libraries(main ${catkin_LIBRARIES})
 
-# add_executable(GridMapConverter src/GridMapConverter.cpp)
-# target_link_libraries(GridMapConverter ${catkin_LIBRARIES})
+########################################
+## Installation
+########################################
+
+# Install the library:
+install(TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+
+# Install only the public headers under `include/my_package`
+install(
+  DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
+)
