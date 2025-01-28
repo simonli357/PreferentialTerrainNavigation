@@ -9,33 +9,34 @@
 using namespace Constants;
 class ImageToCost {
 public:
-    ImageToCost() {
+    ImageToCost(): costImage(cv::Mat())
+    {
         initializeColorMap();
     }
 
-    cv::Mat convert(const cv::Mat& colorImage) {
+    const cv::Mat& convert(const cv::Mat& colorImage) {
         if (colorImage.empty() || colorImage.channels() != 3) {
             throw std::invalid_argument("Input image must be a non-empty 3-channel image.");
         }
 
-        cv::Mat grayImage(colorImage.rows, colorImage.cols, CV_8UC1);
+        costImage = cv::Mat(colorImage.rows, colorImage.cols, CV_8UC1);
 
         for (int y = 0; y < colorImage.rows; ++y) {
             for (int x = 0; x < colorImage.cols; ++x) {
                 cv::Vec3b color = colorImage.at<cv::Vec3b>(y, x);
-                grayImage.at<uchar>(y, x) = getCost(color);
+                costImage.at<uchar>(y, x) = getCost(color);
             }
         }
 
-        return grayImage;
+        return costImage;
     }
 
-    cv::Mat convertToColor(const cv::Mat& costImage) {
+    const cv::Mat& convertToColor(const cv::Mat& costImage) {
         if (costImage.empty() || costImage.channels() != 1) {
             throw std::invalid_argument("Input image must be a non-empty single-channel image.");
         }
 
-        cv::Mat colorImage(costImage.rows, costImage.cols, CV_8UC3);
+        colorImage = cv::Mat(costImage.rows, costImage.cols, CV_8UC3);
 
         for (int y = 0; y < costImage.rows; ++y) {
             for (int x = 0; x < costImage.cols; ++x) {
@@ -57,6 +58,8 @@ private:
     static std::vector<std::string> CLASSES;
     std::unordered_map<cv::Vec3b, float, Vec3bHash> colorCostMap;
     std::unordered_map<float, cv::Vec3b> costColorMap;
+    cv::Mat costImage;
+    cv::Mat colorImage;
 
     void initializeColorMap() {
         for (size_t i = 0; i < COLOR_MAP.size(); ++i) {

@@ -40,9 +40,6 @@ include_directories(
 add_executable(TerrainMap src/TerrainMapOld.cpp)
 target_link_libraries(TerrainMap ${catkin_LIBRARIES})
 
-add_executable(image_to_gridmap_demo src/ImageToGridmapDemo.cpp)
-target_link_libraries(image_to_gridmap_demo ${catkin_LIBRARIES})
-
 add_executable(ImageToCost src/ImageToCost_node.cpp)
 target_link_libraries(ImageToCost ${catkin_LIBRARIES})
 

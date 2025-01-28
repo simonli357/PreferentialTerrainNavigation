@@ -19,8 +19,8 @@ class GridMapVisualizer:
         self.terminate = False
 
         # Subscribers
-        rospy.Subscriber("my_grid_map", GridMap, self.grid_map_callback, queue_size=1)
-        rospy.Subscriber("my_a_star_path", Path, self.path_callback, queue_size=1)
+        rospy.Subscriber("terrain_map", GridMap, self.grid_map_callback, queue_size=1)
+        rospy.Subscriber("planned_path", Path, self.path_callback, queue_size=1)
 
         # Initialize interactive plot
         self.fig = plt.figure()
@@ -42,11 +42,11 @@ class GridMapVisualizer:
         size_x = int(round(length_x / resolution))
         size_y = int(round(length_y / resolution))
 
-        # Locate the "cost" layer
-        if "cost" not in msg.layers:
+        # Locate the "terrainCost" layer
+        if "terrainCost" not in msg.layers:
             rospy.logwarn("No 'cost' layer found in GridMap message.")
             return
-        layer_index = msg.layers.index("cost")
+        layer_index = msg.layers.index("terrainCost")
 
         # Extract and reshape the cost data
         cost_data = msg.data[layer_index].data
@@ -74,8 +74,9 @@ class GridMapVisualizer:
 
         plt.clf()  # Clear the figure
 
+        flipped_grid = np.flipud(np.fliplr(self.latest_grid))
         # Display the grid as an image
-        plt.imshow(self.latest_grid, cmap='gray', origin='lower')
+        plt.imshow(flipped_grid, cmap='gray', origin='lower')
 
         # Overlay the path if available
         if self.latest_path is not None and len(self.latest_path) > 0:

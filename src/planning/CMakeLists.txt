@@ -31,7 +31,15 @@ include_directories(
 )
 
 add_executable(astar 
+  src/Planner.cpp
   src/AStarPlanner.cpp
-  src/a_start_planner_node.cpp
+  src/a_star_planner_node.cpp
 )
 target_link_libraries(astar ${catkin_LIBRARIES})
+
+add_executable(controller 
+  src/Planner.cpp
+  src/AStarPlanner.cpp
+  src/controller_node.cpp
+)
+target_link_libraries(controller ${catkin_LIBRARIES})

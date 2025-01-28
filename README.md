@@ -93,6 +93,11 @@ rosrun segmentation segmentation_node.py
 rosrun bev ipm_node.py
 ```
 
+#### Start Bird’s Eye View (BEV) Node
+```bash
+rosrun bev ipm_node.py
+```
+
 ---
 
 ### Useful Topics

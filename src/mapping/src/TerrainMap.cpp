@@ -17,7 +17,7 @@ TerrainMap::TerrainMap()
     // The center is at (width/2, height/2) w.r.t. some global origin (0,0).
 
     // Initialize the "terrainCost" layer to 127 = unknown / mid-cost
-    globalMap_.add("terrainCost", 127.0f);
+    globalMap_.add("terrainCost", 75.0f);
 }
 
 void TerrainMap::updateGlobalMap(const cv::Mat& localMap,

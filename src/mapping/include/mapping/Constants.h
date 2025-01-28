@@ -14,7 +14,7 @@ namespace Constants {
     static constexpr double LOCAL_MAP_WIDTH = IMG_WIDTH_PX * METERS_PER_PIXEL;
     static constexpr double LOCAL_MAP_HEIGHT = IMG_HEIGHT_PX * METERS_PER_PIXEL;
     static constexpr double GLOBAL_MAP_WIDTH = 100.0;
-    static constexpr double GLOBAL_MAP_HEIGHT = 100.0;
+    static constexpr double GLOBAL_MAP_HEIGHT = 80.0;
     static constexpr double METERS_PER_CELL = 0.2;
 
     enum class TERRAIN_TYPE {
