@@ -1,4 +1,6 @@
 #include <ros/ros.h>
+#include <tf/tf.h>
+
 #include <grid_map_core/GridMap.hpp>
 #include <grid_map_ros/GridMapRosConverter.hpp>
 #include <grid_map_msgs/GridMap.h>
@@ -13,6 +15,7 @@
 #include "mapping/TerrainMap.hpp"
 #include "mapping/Constants.h"
 #include "mapping/ImageToCost.hpp"
+#include "Utility.h"
 
 class Controller {
 public:
@@ -24,6 +27,7 @@ public:
 
         // Initialize subscriber to the BEV image topic
         bev_image_sub_ = nh_.subscribe("bev_image", 1, &Controller::bevImageCallback, this);
+        robot_pose_sub_ = nh_.subscribe("robot_pose", 1, &Controller::robotPoseCallback, this);
 
         ROS_INFO("Controller initialized and ready to process BEV images.");
     }
@@ -32,6 +36,7 @@ private:
     ros::Publisher map_pub_;
     ros::Publisher path_pub_;
     ros::Subscriber bev_image_sub_;
+    ros::Subscriber robot_pose_sub_;
 
     ImageToCost image_to_cost_converter_;
     TerrainMap global_map_;
@@ -43,6 +48,11 @@ private:
 
     cv::Mat bev_image_;
 
+    void robotPoseCallback(const geometry_msgs::PoseStamped &msg) {
+        robot_x_ = msg.pose.position.x;
+        robot_y_ = msg.pose.position.y;
+        robot_yaw_ = tf::getYaw(msg.pose.orientation);
+    }
     void bevImageCallback(const sensor_msgs::ImageConstPtr &msg) {
         // Convert the ROS image message to an OpenCV image
         cv_bridge::CvImagePtr cv_ptr;
@@ -66,21 +76,12 @@ private:
         global_map_.updateGlobalMap(local_map, robot_x_, robot_y_, robot_yaw_);
         auto& map_ = global_map_.getMap();
 
-        // check the max and min values of the cost map
-        double min, max;
-        for (grid_map::GridMapIterator it(map_); !it.isPastEnd(); ++it) {
-            const auto& index = *it;
-            const auto& cost = map_.at("terrainCost", index);
-            if (cost < min) min = cost;
-            if (cost > max) max = cost;
-        }
-        ROS_INFO("Cost map min: %f, max: %f", min, max);
-
         // Plan the path
         // grid_map::Index start_index(0, 0);
         // grid_map::Index goal_index(460, 415);
         // auto path_indices = planner_.plan(map_, "terrainCost", start_index, goal_index);
-        auto start_pos = grid_map::Position(54.0, 14.0);
+        // auto start_pos = grid_map::Position(54.0, 10.0);
+        auto start_pos = grid_map::Position(0.5, 0.5);
         auto goal_pos = grid_map::Position(90.0, 46.0);
         auto path_indices = planner_.planFromPosition(map_, "terrainCost", start_pos, goal_pos);
 
@@ -93,8 +94,8 @@ private:
         // }
 
         // Convert results to ROS messages
-        auto path_msg = planner_.toPathMsg(path_indices, map_, "map");
-        auto grid_map_msg = planner_.toGridMapMsg(map_);
+        auto path_msg = Utility::toPathMsg(path_indices, map_, "map");
+        auto grid_map_msg = Utility::toGridMapMsg(map_);
 
         map_pub_.publish(grid_map_msg);
         path_pub_.publish(path_msg);

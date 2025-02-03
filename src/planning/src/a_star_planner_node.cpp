@@ -11,6 +11,7 @@
 #include "mapping/TerrainMap.hpp"
 #include "mapping/Constants.h"
 #include "mapping/ImageToCost.hpp"
+#include "Utility.h"
 
 class Controller {
     
@@ -75,8 +76,8 @@ int main(int argc, char** argv)
     auto pathIndices = planner.plan(map, "terrainCost", startIndex, goalIndex);
 
     // 5. Convert to ROS messages
-    auto pathMsg = planner.toPathMsg(pathIndices, map, "map"); // or any frame you'd like
-    auto gridMapMsg = planner.toGridMapMsg(map);
+    auto pathMsg = Utility::toPathMsg(pathIndices, map, "map"); // or any frame you'd like
+    auto gridMapMsg = Utility::toGridMapMsg(map);
     
     // Publish in a loop
     ros::Rate rate(1.0); // 1 Hz

@@ -45,23 +45,5 @@ public:
                                                         const std::string& layerName,
                                                         const grid_map::Position& startPos,
                                                         const grid_map::Position& goalPos);
-                                                        
-  /**
-   * @brief Converts a sequence of grid_map::Index to a nav_msgs::Path.
-   * @param pathIndices  The path as a list of grid_map::Index.
-   * @param gridMap      The GridMap needed to map grid indices to world coordinates.
-   * @param frameId      The frame to use in the Path header (default = "map").
-   * @return             The corresponding nav_msgs::Path message.
-   */
-  virtual nav_msgs::Path toPathMsg(const std::vector<grid_map::Index>& pathIndices,
-                                   const grid_map::GridMap& gridMap,
-                                   const std::string& frameId = "map") const;
-
-  /**
-   * @brief Converts the provided grid_map::GridMap into a grid_map_msgs::GridMap message.
-   * @param gridMap  The GridMap to convert.
-   * @return         A grid_map_msgs::GridMap message.
-   */
-  virtual grid_map_msgs::GridMap toGridMapMsg(const grid_map::GridMap& gridMap) const;
 };
 
